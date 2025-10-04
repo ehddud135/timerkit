@@ -1,14 +1,14 @@
 import React from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, StatusBar } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function stopwatch() {
+export default function CookingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       {/* 1. 시간 표시 영역 */}
       <View style={styles.timerContainer}>
-        <Text style={styles.timerText}>00:00.00</Text>
+        <Text style={styles.timerText}>Cooking Screen</Text>
       </View>
 
       {/* 2. 버튼 영역 */}

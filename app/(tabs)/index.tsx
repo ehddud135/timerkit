@@ -24,17 +24,17 @@ export default function HomeScreen() {
 
       {/* 버튼 그리드 영역 */}
       <View style={styles.gridContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/stopwatch')}>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/StopwatchScreen')}>
           <Ionicons name="stopwatch-outline" size={50} color="#2c3e50" />
           <Text style={styles.buttonText}>스톱워치</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/cooking')}>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/CookingScreen')}>
           <Ionicons name="fast-food-outline" size={50} color="#e67e22" />
           <Text style={styles.buttonText}>요리 타이머</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/tabata')}>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/TabataScreen')}>
           <Ionicons name="barbell-outline" size={50} color="#c0392b" />
           <Text style={styles.buttonText}>타바타 타이머</Text>
         </TouchableOpacity>
