@@ -1,12 +1,11 @@
-import { Tabs, usePathname, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
-import { BackHandler } from 'react-native';
-
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
+import { AudioProvider } from '@/contexts/AudioContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { AudioProvider} from '@/contexts/AudioContext';
+import { Tabs, usePathname, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { BackHandler } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -15,16 +14,19 @@ export default function TabLayout() {
 
   useEffect(() => {
     const handleBackButton = () => {
-      if (pathname !== '/') {
-        router.replace('/'); 
-        return true;
+      const targetTabs = ['/StopwatchScreen', '/TabataScreen', '/CookingScreen', '/RunningScreen'];
+      if (targetTabs.includes(pathname)) {
+        router.navigate('/');
+        return true; // 기본 동작(앱 종료)을 막습니다.
       }
+      // 3. 홈 화면에서는 false를 반환하여 앱이 종료되도록 합니다.
       return false;
     };
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
       handleBackButton
     );
+
     return () => backHandler.remove();
   }, [pathname, router]);
 

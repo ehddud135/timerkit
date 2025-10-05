@@ -49,7 +49,7 @@ export default function CookingListScreen() {
   const handleAddNewRecipe = () => {
     const newRecipeId = `recipe_${Date.now()}`;
     router.push({
-      pathname: './[id].tsx',
+      pathname: '/CookingScreen/[id]',
       params: { id: newRecipeId },
     });
   };
@@ -62,7 +62,7 @@ export default function CookingListScreen() {
         data={recipes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.recipeItem} onPress={() => router.push({ pathname: './[id].tsx', params: { id: item.id } })}>
+          <TouchableOpacity style={styles.recipeItem} onPress={() => router.push({ pathname: '/CookingScreen/[id]', params: { id: item.id } })}>
             <Text style={styles.recipeName}>{item.name}</Text>
           </TouchableOpacity>
         )}
