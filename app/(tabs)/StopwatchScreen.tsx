@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
+import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 const formatTime = (time: number) => {
   const minutes = Math.floor(time / 6000);
   const seconds = Math.floor((time % 6000) / 100);

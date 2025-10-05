@@ -1,16 +1,38 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, usePathname, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { BackHandler } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AudioProvider} from '@/contexts/AudioContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+  const pathname = usePathname(); // 2. 현재 경로를 가져오는 훅을 사용합니다.
+
+  useEffect(() => {
+    const handleBackButton = () => {
+      if (pathname !== '/') {
+        router.replace('/'); 
+        return true;
+      }
+      return false;
+    };
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackButton
+    );
+    return () => backHandler.remove();
+  }, [pathname, router]);
+
 
   return (
+    <AudioProvider>
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
@@ -52,5 +74,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </AudioProvider>
   );
 }
