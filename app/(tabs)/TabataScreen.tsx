@@ -20,7 +20,6 @@ const TabataTimerScreen = () => {
   const isTimerRunning = timerState === 'prepare' || timerState === 'work' || timerState === 'rest';
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTime, setEditingTime] = useState<{ type: 'prepare' | 'work' | 'rest'; value: number } | null>(null);
-
   const openPicker = (type: 'prepare' | 'work' | 'rest', value: number) => {
     setEditingTime({ type, value });
     setModalVisible(true);
@@ -65,7 +64,7 @@ const TabataTimerScreen = () => {
   }, [timerState]);
 
   useEffect(() => {
-    if (isTimerRunning && [2, 1, 0].includes(currentTime)) {
+    if (isTimerRunning && [3, 2, 1].includes(currentTime)) {
       playAudio();
     }
     if (isTimerRunning && currentTime === 0) {

@@ -5,8 +5,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-
-
 const STORAGE_KEY = '@TimerKit:recipes';
 
 const exampleRecipe: Recipe = {
@@ -23,8 +21,6 @@ const exampleRecipe: Recipe = {
 export default function CookingListScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const router = useRouter();
-  
-
   useFocusEffect(
     React.useCallback(() => {
       const loadRecipes = async () => {

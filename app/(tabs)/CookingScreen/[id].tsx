@@ -1,7 +1,6 @@
 import RecipeModal from '@/components/ui/RecipeModal';
 import StepEditorModal from '@/components/ui/StepEditorModal';
 import { useAudio } from '@/contexts/AudioContext';
-import { useNotifications } from '@/contexts/NotificationContext';
 import { getData, storeData } from '@/hooks/storage'; // 경로 확인
 import { Recipe, TimerStep } from '@/hooks/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -26,7 +25,6 @@ export default function RecipeDetailScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [editingStep, setEditingStep] = useState<TimerStep | null>(null);
   const [isRecipeVisible, setRecipeVisible] = useState(false);
-  const { startTimerNotification, stopTimerNotification, updateTimerNotification } = useNotifications();
 
   const openStepEditor = (step: TimerStep) => {
     setEditingStep(step);
@@ -53,20 +51,6 @@ export default function RecipeDetailScreen() {
 
   useEffect(() => { recipeRef.current = recipe; }, [recipe]);
 
-  useEffect(() => {
-    if (status === 'running') {
-      const remainingTime = formatTime(currentTime);
-      updateTimerNotification(
-        `${recipe?.name || '요리'} 타이머 실행 중`,
-        `남은 시간: ${remainingTime}`
-      );
-    }
-    // 타이머가 멈추거나 완료되면 알림 중지
-    if (status === 'idle' || status === 'paused' || status === 'done' || status === 'finished') {
-      stopTimerNotification();
-    }
-  }, [status, currentTime, recipe, updateTimerNotification, stopTimerNotification]);
-  
   // 화면이 열릴 때 ID에 해당하는 레시피 데이터를 불러오는 로직
   useEffect(() => {
     const loadRecipe = async () => {
@@ -155,7 +139,6 @@ export default function RecipeDetailScreen() {
     if (!recipe || recipe.timers.length === 0) return;
     setCurrentStepIndex(0);
     setCurrentTime(recipe.timers[0].duration);
-    startTimerNotification(`${recipe.name} 타이머 실행 중`, recipe.timers[0].duration);
     setStatus('running');
   };
   
@@ -173,7 +156,6 @@ export default function RecipeDetailScreen() {
     setStatus('idle');
     setCurrentStepIndex(0);
     setCurrentTime(recipe?.timers[0]?.duration || 0);
-    stopTimerNotification();
   };
   
   const addStep = () => {
