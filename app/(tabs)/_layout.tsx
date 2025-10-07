@@ -4,8 +4,8 @@ import { Colors } from '@/constants/theme';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Tabs, usePathname, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
-import { Alert, BackHandler } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Alert, BackHandler, Platform, ToastAndroid } from 'react-native';
 
 
 
@@ -13,9 +13,24 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const pathname = usePathname();
+  const backPressTime = useRef<number>(0);
 
   useEffect(() => {
     const handleBackButton = () => {
+      if (pathname === '/') {
+        const currentTime = Date.now();
+        const timeDiff = currentTime - backPressTime.current;
+        if (timeDiff < 2000) {
+          BackHandler.exitApp();
+          return true;
+        } else {
+          if (Platform.OS === 'android') {
+            ToastAndroid.show("'뒤로' 버튼을 한번 더 누르시면 종료됩니다.", ToastAndroid.SHORT);
+          }
+          backPressTime.current = currentTime;
+          return true;
+        }
+      }
       const targetTabs = ['/StopwatchScreen', '/TabataScreen', '/CookingScreen', '/RunningScreen'];
       if (targetTabs.includes(pathname)) {
         router.navigate('/');
