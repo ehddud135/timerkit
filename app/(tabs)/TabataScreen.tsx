@@ -3,7 +3,6 @@ import { Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'reac
 import TimePickerModal from '../../components/ui/TimePickerModal';
 import { useAudio } from '../../contexts/AudioContext';
 
-
 // 각 상태를 정의합니다.
 type TimerState = 'idle' | 'prepare' | 'work' | 'rest' | 'paused' | 'done';
 
@@ -15,6 +14,7 @@ const TabataTimerScreen = () => {
   const [timerState, setTimerState] = useState<TimerState>('idle');
   const [currentTime, setCurrentTime] = useState(prepareTime);
   const [currentRound, setCurrentRound] = useState(1);
+  const [pausedState, setPausedState] = useState<TimerState>('prepare'); // 일시정지 전 상태 저장
   const intervalRef = useRef<number | null>(null);
   const { playAudio, playHaptic } = useAudio();
   const isTimerRunning = timerState === 'prepare' || timerState === 'work' || timerState === 'rest';
@@ -45,7 +45,10 @@ const TabataTimerScreen = () => {
 
   useEffect(() => {
     if (timerState === 'idle' || timerState === 'paused' || timerState === 'done') {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       return;
     }
 
@@ -54,7 +57,10 @@ const TabataTimerScreen = () => {
     }, 1000);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [timerState]);
 
@@ -68,24 +74,24 @@ const TabataTimerScreen = () => {
     if (currentTime < 0) {
       // 다음 상태로 전환
       switch (timerState) {
-      case 'prepare':
-        setTimerState('work');
-        setCurrentTime(workTime);
-        break;
-      case 'work':
-        if (currentRound < rounds) {
-          setTimerState('rest');
-          setCurrentTime(restTime);
-        } else {
-          setTimerState('done');
-          Alert.alert("운동 완료!", "수고하셨습니다!");
-        }
-        break;
-      case 'rest':
-        setCurrentRound(prev => prev + 1);
-        setTimerState('work');
-        setCurrentTime(workTime);
-        break;
+        case 'prepare':
+          setTimerState('work');
+          setCurrentTime(workTime);
+          break;
+        case 'work':
+          if (currentRound < rounds) {
+            setTimerState('rest');
+            setCurrentTime(restTime);
+          } else {
+            setTimerState('done');
+            Alert.alert("운동 완료!", "수고하셨습니다!");
+          }
+          break;
+        case 'rest':
+          setCurrentRound(prev => prev + 1);
+          setTimerState('work');
+          setCurrentTime(workTime);
+          break;
       }
     }
   }, [currentTime, timerState, workTime, restTime, rounds, currentRound, playAudio, playHaptic, isTimerRunning]);
@@ -97,54 +103,21 @@ const TabataTimerScreen = () => {
   };
 
   const handlePause = () => {
+    // 현재 상태를 저장하고 일시정지
+    setPausedState(timerState);
     setTimerState('paused');
   };
 
   const handleResume = () => {
-    // 이전 상태로 복귀
-    if (currentRound === 1 && currentTime === prepareTime) {
-       setTimerState('prepare');
-    } else if (currentTime > 0) {
-        // work or rest
-        // We need to know the previous state before pause.
-        // This simple implementation will guess based on round.
-        // A more robust implementation would store the pre-pause state.
-        if (currentRound > 0) {
-            // This is a simplification. For a real app, you'd store the state before pausing.
-            // Let's assume we can deduce it. Here we just resume the countdown
-            // A better way is needed to decide between 'work' and 'rest' on resume.
-            // For now, let's just make it tick.
-            // Let's refine this logic. A better way is to store pre-pause state.
-            const prePauseState = (currentRound > 0 && currentRound <= rounds) ? ( (workTime - currentTime >=0) ? 'work' : 'rest') : 'prepare';
-             if (timerState === 'paused') {
-                const prePauseState = determinePrePauseState();
-                setTimerState(prePauseState);
-            }
-        }
-    }
-     function determinePrePauseState() : TimerState{
-       // This logic is imperfect. Let's assume a simpler logic for now
-       // for the user. We will not try to be perfect here.
-       // The state before pause is tricky.
-       // The easiest way is to NOT change state on pause, just stop the interval
-       // but our current logic relies on timerState for interval.
-       // Let's simplify.
-       Alert.alert("알림", "이 예제에서는 '계속' 기능이 단순화되었습니다.");
-       // This is a placeholder for a more complex state-machine logic.
-       // To make it work for the user now, let's just toggle the interval.
-       // The state machine needs a refactor to support pause/resume properly.
-       // For this example, let's just keep it simple and maybe incorrect.
-       // The best approach for the user now is a simpler state machine.
-       // Ok, I will rewrite the logic to be simpler.
-       // The state will control the display, and a simple isRunning flag will control the timer.
-       // This is a much better pattern for the user.
-       // REWRITING the logic with isRunning flag.
-    }
+    // 저장된 상태로 복귀
+    setTimerState(pausedState);
   };
 
-
-   const handleReset = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const handleReset = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setTimerState('idle');
     setCurrentTime(prepareTime);
     setCurrentRound(1);
@@ -157,7 +130,6 @@ const TabataTimerScreen = () => {
   };
 
   const handleRoundsChange = (amount: number) => {
-    // 라운드 수는 최소 1 이상이어야 합니다.
     setRounds(prev => Math.max(1, prev + amount));
   };
 
@@ -177,50 +149,75 @@ const TabataTimerScreen = () => {
         </Text>
         <Text style={styles.timerText}>{formatTime(currentTime)}</Text>
         <Text style={styles.roundText}>
-            {timerState !== 'idle' && timerState !== 'done' ? `${currentRound} / ${rounds} 라운드` : ''}
+          {timerState !== 'idle' && timerState !== 'done' ? `${currentRound} / ${rounds} 라운드` : ''}
         </Text>
       </View>
 
       <View style={styles.controls}>
-        {timerState === 'idle' && <TouchableOpacity style={styles.button} onPress={handleStart}><Text style={styles.buttonText}>시작</Text></TouchableOpacity>}
-        {(timerState === 'prepare' || timerState === 'work' || timerState === 'rest') && <TouchableOpacity style={styles.button} onPress={handlePause}><Text style={styles.buttonText}>일시정지</Text></TouchableOpacity>}
-        {timerState === 'paused' && <TouchableOpacity style={styles.button} onPress={handleResume}><Text style={styles.buttonText}>계속</Text></TouchableOpacity>}
-        <TouchableOpacity style={[styles.button, styles.resetButton]} onPress={handleReset}><Text style={styles.buttonText}>리셋</Text></TouchableOpacity>
+        {timerState === 'idle' && (
+          <TouchableOpacity style={styles.button} onPress={handleStart}>
+            <Text style={styles.buttonText}>시작</Text>
+          </TouchableOpacity>
+        )}
+        {(timerState === 'prepare' || timerState === 'work' || timerState === 'rest') && (
+          <TouchableOpacity style={styles.button} onPress={handlePause}>
+            <Text style={styles.buttonText}>일시정지</Text>
+          </TouchableOpacity>
+        )}
+        {timerState === 'paused' && (
+          <TouchableOpacity style={styles.button} onPress={handleResume}>
+            <Text style={styles.buttonText}>계속</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={[styles.button, styles.resetButton]} onPress={handleReset}>
+          <Text style={styles.buttonText}>리셋</Text>
+        </TouchableOpacity>
       </View>
-      
+
       <View style={styles.settings}>
-        <TouchableOpacity style={styles.settingRow} onPress={() => openPicker('prepare', prepareTime)}>
+        <TouchableOpacity 
+          style={styles.settingRow} 
+          onPress={() => isEditable && openPicker('prepare', prepareTime)}
+          disabled={!isEditable}
+        >
           <Text style={styles.settingLabel}>준비</Text>
           <Text style={styles.settingValue}>{prepareTime}초</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.settingRow} onPress={() => openPicker('work', workTime)}>
+        <TouchableOpacity 
+          style={styles.settingRow} 
+          onPress={() => isEditable && openPicker('work', workTime)}
+          disabled={!isEditable}
+        >
           <Text style={styles.settingLabel}>운동</Text>
           <Text style={styles.settingValue}>{workTime}초</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.settingRow} onPress={() => openPicker('rest', restTime)}>
+        <TouchableOpacity 
+          style={styles.settingRow} 
+          onPress={() => isEditable && openPicker('rest', restTime)}
+          disabled={!isEditable}
+        >
           <Text style={styles.settingLabel}>휴식</Text>
           <Text style={styles.settingValue}>{restTime}초</Text>
         </TouchableOpacity>
         <View style={styles.settingRow}>
           <Text style={styles.settingLabel}>라운드</Text>
-            <View style={styles.stepperContainer}>
-              <TouchableOpacity 
-                style={styles.stepperButton} 
-                onPress={() => handleRoundsChange(-1)} 
-                disabled={!isEditable}
-              >
-                <Text style={styles.stepperButtonText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.stepperValue}>{rounds}</Text>
-              <TouchableOpacity 
-                style={styles.stepperButton} 
-                onPress={() => handleRoundsChange(1)}
-                disabled={!isEditable}
-              >
-                <Text style={styles.stepperButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          {/* <TextInput style={styles.input} value={String(rounds)} onChangeText={text => setRounds(Number(text))} keyboardType="numeric" editable={isEditable} /> */}
+          <View style={styles.stepperContainer}>
+            <TouchableOpacity
+              style={styles.stepperButton}
+              onPress={() => handleRoundsChange(-1)}
+              disabled={!isEditable}
+            >
+              <Text style={styles.stepperButtonText}>-</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepperValue}>{rounds}</Text>
+            <TouchableOpacity
+              style={styles.stepperButton}
+              onPress={() => handleRoundsChange(1)}
+              disabled={!isEditable}
+            >
+              <Text style={styles.stepperButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
       {editingTime && (
@@ -232,11 +229,8 @@ const TabataTimerScreen = () => {
         />
       )}
     </View>
-
-    
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -279,7 +273,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   resetButton: {
-      backgroundColor: '#95a5a6',
+    backgroundColor: '#95a5a6',
   },
   buttonText: {
     color: '#fff',
@@ -299,21 +293,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
   },
-  input: {
-    color: '#fff',
-    fontSize: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: '#fff',
-    width: 50,
-    textAlign: 'center',
-    padding: 5,
-  },
   settingValue: {
     color: '#fff',
     fontSize: 18,
     padding: 5,
   },
-    stepperContainer: {
+  stepperContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#333',

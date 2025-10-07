@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 const formatTime = (time: number) => {
   const minutes = Math.floor(time / 6000);
   const seconds = Math.floor((time % 6000) / 100);
@@ -18,15 +19,17 @@ export default function StopwatchScreen() {
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
-        setTime(prevTime => prevTime +1 );
+        setTime(prevTime => prevTime + 1);
       }, 10);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isRunning]);
@@ -57,11 +60,17 @@ export default function StopwatchScreen() {
 
       {/* 2. 버튼 영역 */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.lapButton]} onPress={handleLapReset}>
-          <Text style={styles.buttonText}>{isRunning ? '랩' : '리셋'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, isRunning ? styles.stopButton : styles.startButton]} onPress={handleStartStop}>
+        <TouchableOpacity 
+          style={[styles.button, isRunning ? styles.stopButton : styles.startButton]} 
+          onPress={handleStartStop}
+        >
           <Text style={styles.buttonText}>{isRunning ? '중지' : '시작'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.button, styles.lapButton]} 
+          onPress={handleLapReset}
+        >
+          <Text style={styles.buttonText}>{isRunning ? '랩' : '리셋'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -80,48 +89,48 @@ export default function StopwatchScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // 전체 화면을 차지하도록 설정
-    backgroundColor: '#0D0D0D', // 어두운 배경색
+    flex: 1,
+    backgroundColor: '#1e1e1e',
   },
   timerContainer: {
-    flex: 1, // 화면의 3/7 비율 차지
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   timerText: {
     color: '#FFFFFF',
     fontSize: 70,
-    fontWeight: '200', // 얇은 폰트
+    fontWeight: '200',
     fontVariant: ['tabular-nums'],
   },
   buttonContainer: {
-    flex: 1, // 화면의 1/7 비율 차지
-    flexDirection: 'row', // 버튼을 가로로 배치
-    justifyContent: 'space-around', // 버튼 사이에 동일한 간격
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
   },
   button: {
-    width: 100,
-    height: 100,
-    borderRadius: 50, // 원형 버튼
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#3498db',
+    paddingVertical: 20,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    marginHorizontal: 10,
   },
   lapButton: {
     backgroundColor: '#3D3D3D',
   },
   startButton: {
-    backgroundColor: '#06921bff',
+    backgroundColor: '#3498db',
   },
   stopButton: {
-    backgroundColor: '#f50505ff'
+    backgroundColor: '#f50505ff',
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 20,
   },
   lapContainer: {
-    flex: 3, // 화면의 3/7 비율 차지
+    flex: 3,
     paddingHorizontal: 20,
   },
   lapItem: {

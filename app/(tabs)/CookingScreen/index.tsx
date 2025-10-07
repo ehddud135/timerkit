@@ -3,7 +3,7 @@ import { Recipe } from '@/hooks/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
 
@@ -29,9 +29,8 @@ export default function CookingListScreen() {
     React.useCallback(() => {
       const loadRecipes = async () => {
         try {
-          console.log('Loading recipes from storage...');
           const storedRecipes = await getData<Recipe[]>(STORAGE_KEY);
-          if (storedRecipes) {
+          if (storedRecipes && storedRecipes.length > 0) {
             setRecipes(storedRecipes);
           } else {
             const exampleData = [exampleRecipe];
@@ -54,15 +53,38 @@ export default function CookingListScreen() {
     });
   };
 
+  const handleDeleteRecipe = (idToDelete: string) => {
+    Alert.alert(
+      "레시피 삭제",
+      "정말로 이 레시피를 삭제하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        { 
+          text: "삭제", 
+          style: "destructive", 
+          onPress: async () => {
+            const updatedRecipes = recipes.filter(r => r.id !== idToDelete);
+            setRecipes(updatedRecipes);
+            await storeData(STORAGE_KEY, updatedRecipes);
+          } 
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Text style={styles.title}>나의 요리법</Text>
+      <Text style={styles.title}>Recipes</Text>
       <FlatList
         data={recipes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.recipeItem} onPress={() => router.push({ pathname: '/CookingScreen/[id]', params: { id: item.id } })}>
+          <TouchableOpacity 
+            style={styles.recipeItem} 
+            onPress={() => router.push({ pathname: '/CookingScreen/[id]', params: { id: item.id } })}
+            onLongPress={() => handleDeleteRecipe(item.id)}
+          >
             <Text style={styles.recipeName}>{item.name}</Text>
           </TouchableOpacity>
         )}

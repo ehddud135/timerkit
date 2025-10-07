@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   pickerItem: { height: 120 },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 20 },
   button: { borderRadius: 10, padding: 10, elevation: 2, flex: 0.48 },
-  cancelButton: { backgroundColor: '#f2f2f2' },
+  cancelButton: { backgroundColor: '#e74c3c' },
   saveButton: { backgroundColor: '#2196F3' },
   buttonText: { color: 'white', fontWeight: 'bold', textAlign: 'center' },
 });

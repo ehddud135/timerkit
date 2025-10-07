@@ -1,10 +1,13 @@
+import RecipeModal from '@/components/ui/RecipeModal';
+import StepEditorModal from '@/components/ui/StepEditorModal';
+import { useAudio } from '@/contexts/AudioContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { getData, storeData } from '@/hooks/storage'; // 경로 확인
 import { Recipe, TimerStep } from '@/hooks/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useAudio } from '../../../contexts/AudioContext'; // 경로 확인
 
 const STORAGE_KEY = '@TimerKit:recipes';
 
@@ -12,17 +15,58 @@ type TimerStatus = 'idle' | 'running' | 'paused' | 'finished' | 'done';
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const { playAll } = useAudio();
-
-  // 1. 모든 레시피 정보를 이 'recipe' 상태 하나로만 관리합니다. (가장 큰 변경점)
   const [recipe, setRecipe] = useState<Recipe | null>(null);
-
+  const navigation = useNavigation();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [status, setStatus] = useState<TimerStatus>('idle');
   const intervalRef = useRef<number | null>(null);
+  const recipeRef = useRef(recipe);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [editingStep, setEditingStep] = useState<TimerStep | null>(null);
+  const [isRecipeVisible, setRecipeVisible] = useState(false);
+  const { startTimerNotification, stopTimerNotification, updateTimerNotification } = useNotifications();
 
+  const openStepEditor = (step: TimerStep) => {
+    setEditingStep(step);
+    setModalVisible(true);
+  };
+
+  const handleSaveStep = (updatedStep: TimerStep) => {
+    setRecipe(prev => {
+      if (!prev) return null;
+      const updatedTimers = prev.timers.map(step => 
+        step.id === updatedStep.id ? updatedStep : step
+      );
+      return { ...prev, timers: updatedTimers };
+    });
+  };
+
+  const handleDeleteStep = (idToDelete: number) => {
+    setRecipe(prev => {
+      if (!prev) return null;
+      const updatedTimers = prev.timers.filter(step => step.id !== idToDelete);
+      return { ...prev, timers: updatedTimers };
+    });
+  };
+
+  useEffect(() => { recipeRef.current = recipe; }, [recipe]);
+
+  useEffect(() => {
+    if (status === 'running') {
+      const remainingTime = formatTime(currentTime);
+      updateTimerNotification(
+        `${recipe?.name || '요리'} 타이머 실행 중`,
+        `남은 시간: ${remainingTime}`
+      );
+    }
+    // 타이머가 멈추거나 완료되면 알림 중지
+    if (status === 'idle' || status === 'paused' || status === 'done' || status === 'finished') {
+      stopTimerNotification();
+    }
+  }, [status, currentTime, recipe, updateTimerNotification, stopTimerNotification]);
+  
   // 화면이 열릴 때 ID에 해당하는 레시피 데이터를 불러오는 로직
   useEffect(() => {
     const loadRecipe = async () => {
@@ -46,24 +90,38 @@ export default function RecipeDetailScreen() {
     loadRecipe();
   }, [id]);
 
-  // 'recipe' 상태가 변경될 때마다 자동으로 AsyncStorage에 저장하는 로직
-  useEffect(() => {
-    if (recipe) {
-      const saveRecipe = async () => {
-        const allRecipes = await getData<Recipe[]>(STORAGE_KEY) || [];
-        const recipeIndex = allRecipes.findIndex((r: Recipe) => r.id === recipe.id);
-
-        if (recipeIndex > -1) {
-          allRecipes[recipeIndex] = recipe;
-        } else {
-          allRecipes.push(recipe);
-        }
-        await storeData(STORAGE_KEY, allRecipes);
-      };
-      const debounce = setTimeout(() => saveRecipe(), 500);
-      return () => clearTimeout(debounce);
+  const handleSave = useCallback(async () => {
+    const currentRecipe = recipeRef.current; // state 대신 ref에서 최신 값을 가져옴
+    if (currentRecipe) {
+      const allRecipes = await getData<Recipe[]>(STORAGE_KEY) || [];
+      const recipeIndex = allRecipes.findIndex(r => r.id === currentRecipe.id);
+      if (recipeIndex > -1) {
+        allRecipes[recipeIndex] = currentRecipe;
+      } else {
+        allRecipes.push(currentRecipe);
+      }
+      await storeData(STORAGE_KEY, allRecipes);
+      router.back();
     }
-  }, [recipe]);
+  }, []);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            onPress={() => setRecipeVisible(true)} 
+            style={{ marginRight: 20 }} // 버튼 사이 간격
+          >
+            <Ionicons name="reader-outline" size={26} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSave}>
+            <Ionicons name="save" size={28} color="#3498db" />
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, handleSave]);
 
   // 타이머 실행/정지 로직
   useEffect(() => {
@@ -97,6 +155,7 @@ export default function RecipeDetailScreen() {
     if (!recipe || recipe.timers.length === 0) return;
     setCurrentStepIndex(0);
     setCurrentTime(recipe.timers[0].duration);
+    startTimerNotification(`${recipe.name} 타이머 실행 중`, recipe.timers[0].duration);
     setStatus('running');
   };
   
@@ -114,6 +173,7 @@ export default function RecipeDetailScreen() {
     setStatus('idle');
     setCurrentStepIndex(0);
     setCurrentTime(recipe?.timers[0]?.duration || 0);
+    stopTimerNotification();
   };
   
   const addStep = () => {
@@ -170,10 +230,14 @@ export default function RecipeDetailScreen() {
 
       <ScrollView style={styles.stepsContainer}>
         {recipe.timers.map((step, index) => (
-          <View key={step.id} style={[styles.stepItem, index === currentStepIndex && status !== 'idle' && styles.activeStep]}>
+          <TouchableOpacity 
+            key={step.id} 
+            style={[styles.stepItem, index === currentStepIndex && status !== 'idle' && styles.activeStep]}
+            onPress={() => status === 'idle' && openStepEditor(step)}
+          >
             <Text style={styles.stepItemText}>{index + 1}. {step.stepName}</Text>
             <Text style={styles.stepItemText}>{formatTime(step.duration)}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
         {status === 'idle' && (
           <TouchableOpacity style={styles.addStepButton} onPress={addStep}>
@@ -182,23 +246,38 @@ export default function RecipeDetailScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
+      <StepEditorModal 
+        visible={isModalVisible}
+        step={editingStep}
+        onClose={() => setModalVisible(false)}
+        onSave={handleSaveStep}
+        onDelete={handleDeleteStep}
+      />
+      <RecipeModal
+        visible={isRecipeVisible}
+        memo={recipe.memo}
+        onClose={() => setRecipeVisible(false)}
+        onSave={(newMemo) => {
+          setRecipe(prev => prev ? { ...prev, memo: newMemo } : null);
+        }}
+      />
     </View>
   );
 }
 
 // ... 스타일 코드는 동일
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1e1e1e', padding: 20, paddingTop: 60 },
-  recipeTitle: { color: '#fff', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, padding: 10, borderBottomWidth: 1, borderBottomColor: '#333' },
-  mainTimerContainer: { flex: 2, justifyContent: 'center', alignItems: 'center' },
-  stepName: { color: '#a0a0a0', fontSize: 24, textTransform: 'uppercase', marginBottom: 10 },
+  container: { flex: 1, backgroundColor: '#1e1e1e', padding: 20, paddingTop: 0 },
+  recipeTitle: { color: '#fff', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 0, padding: 10, borderBottomWidth: 1, borderBottomColor: '#333' },
+  mainTimerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center'},
+  stepName: { color: '#a0a0a0', fontSize: 24, textTransform: 'uppercase' },
   mainTimerText: { color: '#fff', fontSize: 80, fontWeight: '200', fontVariant: ['tabular-nums'] },
   controls: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   button: { backgroundColor: '#3498db', paddingVertical: 15, paddingHorizontal: 30, borderRadius: 10, marginHorizontal: 10 },
   pauseButton: { backgroundColor: '#f39c12' },
   resetButton: { backgroundColor: '#95a5a6' },
   buttonText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  stepsContainer: { flex: 3, borderTopWidth: 1, borderTopColor: '#333', paddingTop: 10 },
+  stepsContainer: { flex: 5, borderTopWidth: 1, borderTopColor: '#333', paddingTop: 10 },
   stepItem: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, borderRadius: 5, marginBottom: 10 },
   activeStep: { backgroundColor: '#3498db' },
   stepItemText: { color: '#fff', fontSize: 18 },
