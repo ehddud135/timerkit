@@ -20,7 +20,7 @@ export default function RecipeDetailScreen() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [status, setStatus] = useState<TimerStatus>('idle');
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recipeRef = useRef(recipe);
   const [isModalVisible, setModalVisible] = useState(false);
   const [editingStep, setEditingStep] = useState<TimerStep | null>(null);

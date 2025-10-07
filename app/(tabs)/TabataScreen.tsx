@@ -15,7 +15,7 @@ const TabataTimerScreen = () => {
   const [currentTime, setCurrentTime] = useState(prepareTime);
   const [currentRound, setCurrentRound] = useState(1);
   const [pausedState, setPausedState] = useState<TimerState>('prepare'); // 일시정지 전 상태 저장
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { playAudio, playHaptic } = useAudio();
   const isTimerRunning = timerState === 'prepare' || timerState === 'work' || timerState === 'rest';
   const [modalVisible, setModalVisible] = useState(false);
