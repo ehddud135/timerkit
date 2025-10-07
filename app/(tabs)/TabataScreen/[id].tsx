@@ -1,12 +1,17 @@
+import TimePickerModal from '@/components/ui/TimePickerModal';
+import { useAudio } from '@/contexts/AudioContext';
+import { getData } from '@/hooks/storage';
+import { Workout } from '@/hooks/types';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import TimePickerModal from '../../components/ui/TimePickerModal';
-import { useAudio } from '../../contexts/AudioContext';
+import { Alert, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+const STORAGE_KEY = '@TimerKit:tabataWorkouts';
 // 각 상태를 정의합니다.
 type TimerState = 'idle' | 'prepare' | 'work' | 'rest' | 'paused' | 'done';
 
 const TabataTimerScreen = () => {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const [prepareTime, setPrepareTime] = useState(10);
   const [workTime, setWorkTime] = useState(20);
   const [restTime, setRestTime] = useState(10);
@@ -20,10 +25,36 @@ const TabataTimerScreen = () => {
   const isTimerRunning = timerState === 'prepare' || timerState === 'work' || timerState === 'rest';
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTime, setEditingTime] = useState<{ type: 'prepare' | 'work' | 'rest'; value: number } | null>(null);
+  const [work, setWork] = useState<Workout | null> (null)
+  const workRef = useRef(work);
   const openPicker = (type: 'prepare' | 'work' | 'rest', value: number) => {
     setEditingTime({ type, value });
     setModalVisible(true);
   };
+
+  useEffect(() => { workRef.current = work; }, [work]);
+
+  useEffect(() => {
+      const loadRountines = async () => {
+        const allRoutines = await getData<Workout[]>(STORAGE_KEY) || [];
+        const foundRoutines = allRoutines.find(r => r.id === id);
+  
+        if (foundRoutines) {
+          setWork(foundRoutines);
+        } else {
+          const newRecipe: Workout = {
+            id: id!,
+            name: '새로운 운동 루틴',
+            prepare: 10,
+            work: 20,
+            rest: 10,
+            rounds: 8,
+          };
+          setWork(newRecipe);
+        }
+      };
+      loadRountines();
+    }, [id]);
 
   const handleSaveTime = (newTime: number) => {
     if (editingTime) {
@@ -138,6 +169,13 @@ const TabataTimerScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.timerDisplay}>
+        <TextInput 
+          style={styles.Title} 
+          value={work.name} 
+          // 5. setRecipe를 사용하여 이름 업데이트
+          onChangeText={(text) => setWork(prev => prev ? { ...prev, name: text } : null)} 
+          editable={status === 'idle'} 
+        />
         <Text style={styles.statusText}>
           {timerState === 'idle' && '준비'}
           {timerState === 'prepare' && '준비'}
@@ -236,6 +274,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1e1e1e',
     padding: 20,
+  },
+  Title: { 
+    color: '#fff', 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    textAlign: 'center', 
+    marginBottom: 0, 
+    padding: 10, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#333' 
   },
   timerDisplay: {
     flex: 2,
