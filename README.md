@@ -1,21 +1,18 @@
-# Welcome to your Expo app 👋
+# TimerKit — All-in-one Timer (Stopwatch · Tabata · Cooking · Running)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+한 앱에서 네 가지 타이머 모드를 지원하는 React Native(Expo SDK 54) 프로젝트입니다.
+Android에선 Foreground Service + Chronometer로 **상단바 1초 단위 카운트다운**을 구현했습니다.
 
-## Get started
+## Demo
+(추가예정)
+(모드 전환 GIF)
+(안드로이드 상단바 카운트다운 GIF)
 
-1. Install dependencies
-
+## Install & Run
    ```bash
    npm install
-   ```
-
-2. Start the app
-
-   ```bash
    npx expo start
    ```
-
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)
@@ -23,28 +20,12 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Features
+- Stopwatch: 랩 타임, 일시정지/재개
+- Tabata: Work/Rest 인터벌, 라운드/세트 커스텀
+- Cooking: 멀티 스텝, 메모/레시피 저장
+- Running: (로드맵) 거리/페이스, 음성 안내
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Roadmap
+- iOS **Live Activities** 지원
+- 러닝 모드 거리/페이스 트래킹
