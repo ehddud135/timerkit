@@ -1,16 +1,27 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import analytics from '@react-native-firebase/analytics';
+import crashlytics from '@react-native-firebase/crashlytics';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 
 
 export default function HomeScreen() {
   const router = useRouter();
 
   // 준비 중인 기능 알림 함수
-  const handleComingSoon = () => {
+  const handleComingSoon = async () => {
     Alert.alert('알림', '준비 중인 기능입니다.');
+    await analytics().logEvent('running_timer_button_pressed', {
+      screen: 'home', // 이벤트에 추가 정보(파라미터) 첨부 가능
+    });
   };
+  
+  const forceCrash = () => {
+    crashlytics().crash();
+  };
+
 
   return (
     <View style={styles.container}>
@@ -44,6 +55,12 @@ export default function HomeScreen() {
           <Ionicons name="walk-outline" size={50} color="#7f8c8d" />
           <Text style={styles.buttonText}>러닝 타이머</Text>
         </TouchableOpacity>
+        
+        <TouchableOpacity style={[styles.button, styles.disabledButton]} onPress={forceCrash}>
+          <Ionicons name="walk-outline" size={50} color="#7f8c8d" />
+          <Text style={styles.buttonText}>Crash Test</Text>
+        </TouchableOpacity>
+      
       </View>
     </View>
   );
