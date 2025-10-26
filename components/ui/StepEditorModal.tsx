@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   modalView: { width: '85%', backgroundColor: 'white', borderRadius: 20, padding: 20, alignItems: 'center' },
   stepNameInput: { color: 'dark', fontSize: 22, fontWeight: 'bold', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#7f8c8d', width: '100%', textAlign: 'center', padding: 5 },
   pickerContainer: { flexDirection: 'row', alignItems: 'center' },
-  picker: { flex: 1 },
+  picker: { flex: 1, color: '#000' },
   pickerItem: { height: 120, color: 'dark' },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 20 },
   button: { borderRadius: 10, padding: 15, flex: 0.45, alignItems: 'center' },

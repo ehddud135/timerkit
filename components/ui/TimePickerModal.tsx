@@ -73,10 +73,10 @@ export default function TimePickerModal({ visible, initialValue, onClose, onSave
 
 const styles = StyleSheet.create({
   centeredView: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalView: { width: '80%', backgroundColor: 'white', borderRadius: 20, padding: 20, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  modalView: { width: '80%', backgroundColor: 'white',borderRadius: 20, padding: 20, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
   pickerContainer: { flexDirection: 'row', alignItems: 'center' },
-  picker: { flex: 1 },
+  picker: { flex: 1, color: '#000' },
   pickerItem: { height: 120 },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 20 },
   button: { borderRadius: 10, padding: 10, elevation: 2, flex: 0.48 },

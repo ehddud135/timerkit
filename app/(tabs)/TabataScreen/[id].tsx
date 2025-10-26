@@ -1,10 +1,12 @@
 import TimePickerModal from '@/components/ui/TimePickerModal';
 import { useAudio } from '@/contexts/AudioContext';
-import { getData } from '@/hooks/storage';
+import { getData, storeData } from '@/hooks/storage';
 import { Workout } from '@/hooks/types';
-import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
 
 const STORAGE_KEY = '@TimerKit:tabataWorkouts';
 // 각 상태를 정의합니다.
@@ -12,18 +14,20 @@ type TimerState = 'idle' | 'prepare' | 'work' | 'rest' | 'paused' | 'done';
 
 const TabataTimerScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [prepareTime, setPrepareTime] = useState(10);
-  const [workTime, setWorkTime] = useState(20);
-  const [restTime, setRestTime] = useState(10);
-  const [rounds, setRounds] = useState(8);
+  const navigation = useNavigation();
+  // const [prepareTime, setPrepareTime] = useState(10);
+  // const [workTime, setWorkTime] = useState(20);
+  // const [restTime, setRestTime] = useState(10);
+  // const [rounds, setRounds] = useState(8);
   const [timerState, setTimerState] = useState<TimerState>('idle');
-  const [currentTime, setCurrentTime] = useState(prepareTime);
+  const [currentTime, setCurrentTime] = useState(0);
   const [currentRound, setCurrentRound] = useState(1);
   const [pausedState, setPausedState] = useState<TimerState>('prepare'); // 일시정지 전 상태 저장
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { playAudio, playHaptic } = useAudio();
   const isTimerRunning = timerState === 'prepare' || timerState === 'work' || timerState === 'rest';
   const [modalVisible, setModalVisible] = useState(false);
+  
   const [editingTime, setEditingTime] = useState<{ type: 'prepare' | 'work' | 'rest'; value: number } | null>(null);
   const [work, setWork] = useState<Workout | null> (null)
   const workRef = useRef(work);
@@ -42,7 +46,7 @@ const TabataTimerScreen = () => {
         if (foundRoutines) {
           setWork(foundRoutines);
         } else {
-          const newRecipe: Workout = {
+          const newWorkout: Workout = {
             id: id!,
             name: '새로운 운동 루틴',
             prepare: 10,
@@ -50,7 +54,7 @@ const TabataTimerScreen = () => {
             rest: 10,
             rounds: 8,
           };
-          setWork(newRecipe);
+          setWork(newWorkout);
         }
       };
       loadRountines();
@@ -58,20 +62,49 @@ const TabataTimerScreen = () => {
 
   const handleSaveTime = (newTime: number) => {
     if (editingTime) {
-      switch (editingTime.type) {
-        case 'prepare':
-          setPrepareTime(newTime);
-          break;
-        case 'work':
-          setWorkTime(newTime);
-          break;
-        case 'rest':
-          setRestTime(newTime);
-          break;
-      }
+      setWork(prevWork => {
+        if (!prevWork) return null;
+        // 'work' 객체 안의 해당 속성([editingTime.type])을 업데이트
+        return { ...prevWork, [editingTime.type]: newTime };
+      });
     }
     setModalVisible(false);
   };
+
+  const handleRoundsChange = (amount: number) => {
+    setWork(prevWork => {
+      if (!prevWork) return null;
+      return { ...prevWork, rounds: Math.max(1, prevWork.rounds + amount) };
+    });
+  };
+
+  const handleSave = useCallback(async () => {
+    const currentWorkout = workRef.current; // state 대신 ref에서 최신 값을 가져옴
+    if (currentWorkout) {
+      const allWorkouts = await getData<Workout[]>(STORAGE_KEY) || [];
+      const workoutIndex = allWorkouts.findIndex(r => r.id === currentWorkout.id);
+      if (workoutIndex > -1) {
+        allWorkouts[workoutIndex] = currentWorkout;
+      } else {
+        allWorkouts.push(currentWorkout);
+      }
+      await storeData(STORAGE_KEY, allWorkouts);
+      router.back();
+    }
+  }, []);
+
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={handleSave}>
+            <Ionicons name="save" size={28} color="#3498db" />
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, handleSave]);
 
   useEffect(() => {
     if (timerState === 'idle' || timerState === 'paused' || timerState === 'done') {
@@ -95,23 +128,19 @@ const TabataTimerScreen = () => {
   }, [timerState]);
 
   useEffect(() => {
-    if (isTimerRunning && [3, 2, 1].includes(currentTime)) {
-      playAudio();
-    }
-    if (isTimerRunning && currentTime === 0) {
-      playHaptic();
-    }
-    if (currentTime < 0) {
+    if (isTimerRunning && [3, 2, 1].includes(currentTime)) playAudio();
+    if (isTimerRunning && currentTime === 0) playHaptic();
+    if (currentTime < 0 && work) {
       // 다음 상태로 전환
       switch (timerState) {
         case 'prepare':
           setTimerState('work');
-          setCurrentTime(workTime);
+          setCurrentTime(work.work);
           break;
         case 'work':
-          if (currentRound < rounds) {
+          if (currentRound < work.rounds) {
             setTimerState('rest');
-            setCurrentTime(restTime);
+            setCurrentTime(work.rest);
           } else {
             setTimerState('done');
             Alert.alert("운동 완료!", "수고하셨습니다!");
@@ -120,14 +149,15 @@ const TabataTimerScreen = () => {
         case 'rest':
           setCurrentRound(prev => prev + 1);
           setTimerState('work');
-          setCurrentTime(workTime);
+          setCurrentTime(work.work);
           break;
       }
     }
-  }, [currentTime, timerState, workTime, restTime, rounds, currentRound, playAudio, playHaptic, isTimerRunning]);
+  }, [currentTime, timerState, work, currentRound, playAudio, playHaptic, isTimerRunning]); // 'work' 의존성 추가
 
   const handleStart = () => {
-    setCurrentTime(prepareTime);
+    if (!work) return;
+    setCurrentTime(work?.prepare);
     setCurrentRound(1);
     setTimerState('prepare');
   };
@@ -149,7 +179,7 @@ const TabataTimerScreen = () => {
       intervalRef.current = null;
     }
     setTimerState('idle');
-    setCurrentTime(prepareTime);
+    setCurrentTime(work?.prepare || 0);
     setCurrentRound(1);
   };
 
@@ -159,11 +189,11 @@ const TabataTimerScreen = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleRoundsChange = (amount: number) => {
-    setRounds(prev => Math.max(1, prev + amount));
-  };
-
   const isEditable = timerState === 'idle';
+
+  if (!work) {
+    return <View style={styles.container}><Text style={{color: 'white'}}>로딩 중...</Text></View>;
+  }
 
   return (
     <View style={styles.container}>
@@ -174,7 +204,7 @@ const TabataTimerScreen = () => {
           value={work.name} 
           // 5. setRecipe를 사용하여 이름 업데이트
           onChangeText={(text) => setWork(prev => prev ? { ...prev, name: text } : null)} 
-          editable={status === 'idle'} 
+          editable={timerState === 'idle'} 
         />
         <Text style={styles.statusText}>
           {timerState === 'idle' && '준비'}
@@ -186,7 +216,7 @@ const TabataTimerScreen = () => {
         </Text>
         <Text style={styles.timerText}>{formatTime(currentTime)}</Text>
         <Text style={styles.roundText}>
-          {timerState !== 'idle' && timerState !== 'done' ? `${currentRound} / ${rounds} 라운드` : ''}
+          {timerState !== 'idle' && timerState !== 'done' ? `${currentRound} / ${work.rounds} 라운드` : ''}
         </Text>
       </View>
 
@@ -214,27 +244,27 @@ const TabataTimerScreen = () => {
       <View style={styles.settings}>
         <TouchableOpacity 
           style={styles.settingRow} 
-          onPress={() => isEditable && openPicker('prepare', prepareTime)}
+          onPress={() => isEditable && openPicker('prepare', work.prepare)}
           disabled={!isEditable}
         >
           <Text style={styles.settingLabel}>준비</Text>
-          <Text style={styles.settingValue}>{prepareTime}초</Text>
+          <Text style={styles.settingValue}>{work.prepare}초</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.settingRow} 
-          onPress={() => isEditable && openPicker('work', workTime)}
+          onPress={() => isEditable && openPicker('work', work.work)}
           disabled={!isEditable}
         >
           <Text style={styles.settingLabel}>운동</Text>
-          <Text style={styles.settingValue}>{workTime}초</Text>
+          <Text style={styles.settingValue}>{work.work}초</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.settingRow} 
-          onPress={() => isEditable && openPicker('rest', restTime)}
+          onPress={() => isEditable && openPicker('rest', work.rest)}
           disabled={!isEditable}
         >
           <Text style={styles.settingLabel}>휴식</Text>
-          <Text style={styles.settingValue}>{restTime}초</Text>
+          <Text style={styles.settingValue}>{work.rest}초</Text>
         </TouchableOpacity>
         <View style={styles.settingRow}>
           <Text style={styles.settingLabel}>라운드</Text>
@@ -246,7 +276,7 @@ const TabataTimerScreen = () => {
             >
               <Text style={styles.stepperButtonText}>-</Text>
             </TouchableOpacity>
-            <Text style={styles.stepperValue}>{rounds}</Text>
+            <Text style={styles.stepperValue}>{work.rounds}</Text>
             <TouchableOpacity
               style={styles.stepperButton}
               onPress={() => handleRoundsChange(1)}
@@ -341,7 +371,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   settingValue: {
-    color: '#fff',
+    color: '#ffffffff',
     fontSize: 18,
     padding: 5,
   },
@@ -356,7 +386,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   stepperButtonText: {
-    color: '#fff',
+    color: '#f1eaeaff',
     fontSize: 24,
     fontWeight: 'bold',
   },
